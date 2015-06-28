@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+
+require 'fm'
+
+
+def usage
+    <<EOS
+fm #{FM::VERSION}
+EOS
+
+end
+
+
+puts usage
