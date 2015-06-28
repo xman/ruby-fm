@@ -6,9 +6,25 @@ require 'fm'
 def usage
     <<EOS
 fm #{FM::VERSION}
-EOS
 
+usage: fm <command> [args]
+
+Available fm commands:
+    index       Update index of the storage.
+EOS
 end
 
 
-puts usage
+if ARGV.size == 0
+    $stderr << usage
+    exit
+end
+
+cmd = ARGV.shift
+case cmd
+when "index"
+    FM.cmd_index(ARGV.clone)
+else
+    $stderr << "fm: '#{cmd}' is not a fm command.\n"
+    exit
+end
