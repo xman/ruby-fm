@@ -62,7 +62,13 @@ module FM
                 h[skey][dkey].each do |f|
                     fsize = -1
                     digest = ""
-                    if File.exists?(f.path)
+                    fe = File.exists?(f.path)
+
+                    if fe && File.mtime(f.path) == f.mtime
+                        next
+                    end
+
+                    if fe
                         fsize = File.size(f.path)
                         digest = Digest::MD5.hexdigest(File.read(f.path))
                     end
