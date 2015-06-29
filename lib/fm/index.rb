@@ -80,20 +80,27 @@ module FM
                         end
 
                         d = Digest::MD5.hexdigest(File.read(p))
-                        h[fsize] = { d => FMFile.new(fsize, p, d) }
+                        h[fsize] = { d => [ FMFile.new(fsize, p, d) ] }
                         needupdate = true
                     end
                     digest = Digest::MD5.hexdigest(File.read(fpath))
                     if h[fsize][digest].nil?
-                        h[fsize][digest] = FMFile.new(fsize, fpath, digest)
+                        h[fsize][digest] = [ FMFile.new(fsize, fpath, digest) ]
                         needupdate = true
                         nnewfiles += 1
                         puts "[NEW]: #{fpath} #{digest}"
+                    elsif h[fsize][digest].size == 1 && h[fsize][digest].first.path == fpath
                     else
-                        if fpath != h[fsize][digest].path
-                            ndupfiles += 1
-                            puts "[DUP]: #{fpath}"
-                            puts "       #{h[fsize][digest].path}"
+                        ndupfiles += 1
+                        puts "[DUP]: #{fpath}"
+                        h[fsize][digest].each do |f|
+                            puts "       #{f.path}" if f.path != fpath
+                        end
+
+                        unless h[fsize][digest].any? { |f| f.path == fpath }
+                            fmfile = FMFile.new(fsize, fpath, digest)
+                            h[fsize][digest].push(fmfile)
+                            needupdate = true
                         end
                     end
                 end
