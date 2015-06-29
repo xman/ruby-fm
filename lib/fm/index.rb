@@ -52,6 +52,7 @@ module FM
         nskipfiles = 0
         ndupfiles = 0
         nfailfiles = 0
+        duplist = {}
         puts "Indexing #{indexpath} ..."
         t0 = Time.now
 
@@ -92,9 +93,8 @@ module FM
                     elsif h[fsize][digest].size == 1 && h[fsize][digest].first.path == fpath
                     else
                         ndupfiles += 1
-                        puts "[DUP]: #{fpath}"
-                        h[fsize][digest].each do |f|
-                            puts "       #{f.path}" if f.path != fpath
+                        if duplist[digest].nil?
+                            duplist[digest] = h[fsize][digest]
                         end
 
                         unless h[fsize][digest].any? { |f| f.path == fpath }
@@ -109,6 +109,14 @@ module FM
                 puts "[FAIL]: file=\"#{fpath}\" #{e.message}"
             end
         end
+
+        duplist.values.each do |dup|
+            puts "[DUP]: #{dup.first.path}"
+            dup[1..-1].each do |f|
+                puts "       #{f.path}"
+            end
+        end
+
         t1 = Time.now
         puts "Indexing completed in #{(t1-t0).round(2)}s."
 
