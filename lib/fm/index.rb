@@ -114,7 +114,7 @@ module FM
                     h[fsize] = { digest => [ FMFile.new(fsize, fpath, digest, fmtime) ] }
                     needupdate = true
                     nnewfiles += 1
-                    puts "[NEW]: #{fpath} nil"
+                    puts "[NEW]: #{fpath} #{digest}"
                 else
 
                     h[fsize].values.each do |v|
