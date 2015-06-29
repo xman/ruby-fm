@@ -5,7 +5,7 @@ require 'rake/testtask'
 task :default => []
 
 
-desc 'Run tests.'
+desc ''
 task :test
 Rake::TestTask.new do |t|
     t.libs << 'lib'
