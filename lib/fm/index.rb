@@ -76,9 +76,6 @@ module FM
                     if h[fsize].is_a?(String)
                         p = h[fsize]
                         if p == fpath
-                            ndupfiles += 1
-                            puts "[DUP]: #{fpath}"
-                            puts "       #{p}"
                             next
                         end
 
@@ -93,9 +90,11 @@ module FM
                         nnewfiles += 1
                         puts "[NEW]: #{fpath} #{digest}"
                     else
-                        ndupfiles += 1
-                        puts "[DUP]: #{fpath}"
-                        puts "       #{h[fsize][digest].path}"
+                        if fpath != h[fsize][digest].path
+                            ndupfiles += 1
+                            puts "[DUP]: #{fpath}"
+                            puts "       #{h[fsize][digest].path}"
+                        end
                     end
                 end
             rescue StandardError => e
