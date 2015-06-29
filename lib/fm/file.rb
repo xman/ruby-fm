@@ -4,11 +4,13 @@ module FM
         attr_reader :fsize
         attr_reader :digest
         attr_reader :path
+        attr_accessor :mtime
 
-        def initialize(fsize, path, digest)
+        def initialize(fsize, path, digest, mtime)
             @fsize = fsize
             @digest = digest
             @path = path
+            @mtime = mtime
         end
     end
 
