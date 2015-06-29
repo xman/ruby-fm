@@ -56,6 +56,40 @@ module FM
         puts "Indexing #{indexpath} ..."
         t0 = Time.now
 
+        dlist = []
+        h.each do |skey, svalue|
+            h[skey].each do |dkey, dvalue|
+                h[skey][dkey].each do |f|
+                    fsize = -1
+                    digest = ""
+                    if File.exists?(f.path)
+                        fsize = File.size(f.path)
+                        digest = Digest::MD5.hexdigest(File.read(f.path))
+                    end
+                    if fsize != f.fsize || digest != f.digest
+                        dlist.push(f)
+                    end
+                end
+            end
+        end
+
+        dlist.each do |f|
+            fsize = f.fsize
+            path = f.path
+            digest = f.digest
+
+            h[fsize][digest].delete_if { |v| v.path == path }
+            if h[fsize][digest].size == 0
+                h[fsize].delete(digest)
+                if h[fsize].size == 0
+                    h.delete(fsize)
+                end
+            end
+
+            needupdate = true
+        end
+        dlist = nil
+
         for fpath in Dir.glob("#{indexpath}/**/*", File::FNM_DOTMATCH).select { |e| e.force_encoding("binary"); File.ftype(e) == "file" && has_folder?(".git", e) == false && has_folder?(".hg", e) == false }
             begin
                 fpath = File.realpath(fpath).force_encoding("binary")
