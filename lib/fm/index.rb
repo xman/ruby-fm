@@ -95,6 +95,7 @@ module FM
                 fpath = File.realpath(fpath).force_encoding("binary")
                 fsize = File.size(fpath)
                 digest = Digest::MD5.hexdigest(File.read(fpath))
+                fmtime = File.mtime(fpath)
 
                 if fsize == 0
                     nskipfiles += 1
@@ -104,13 +105,13 @@ module FM
 
                 # Lazy index the file.
                 if h[fsize].nil?
-                    h[fsize] = { digest => [ FMFile.new(fsize, fpath, digest) ] }
+                    h[fsize] = { digest => [ FMFile.new(fsize, fpath, digest, fmtime) ] }
                     needupdate = true
                     nnewfiles += 1
                     puts "[NEW]: #{fpath} nil"
                 else
                     if h[fsize][digest].nil?
-                        h[fsize][digest] = [ FMFile.new(fsize, fpath, digest) ]
+                        h[fsize][digest] = [ FMFile.new(fsize, fpath, digest, fmtime) ]
                         needupdate = true
                         nnewfiles += 1
                         puts "[NEW]: #{fpath} #{digest}"
@@ -122,7 +123,7 @@ module FM
                         end
 
                         unless h[fsize][digest].any? { |f| f.path == fpath }
-                            fmfile = FMFile.new(fsize, fpath, digest)
+                            fmfile = FMFile.new(fsize, fpath, digest, fmtime)
                             h[fsize][digest].push(fmfile)
                             needupdate = true
                         end
