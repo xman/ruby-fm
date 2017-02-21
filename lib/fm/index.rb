@@ -3,16 +3,15 @@ require 'fileutils'
 require 'optparse'
 require 'yaml'
 
+require 'fm/db'
 require 'fm/file'
 require 'fm/match'
-
-
-DBFILE = ENV['HOME'] + '/.fm/fdata.db'
 
 
 module FM
 
     def cmd_index(argv)
+        #### Parse options.
 
         banner = "usage: fm index [options] <PATH>"
         options = {
@@ -33,33 +32,43 @@ module FM
         end
 
 
+        #### Load DB file.
+
         puts "Loading DB #{options[:dbfile]} ..."
         t0 = Time.now
         h = {}
-        needupdate = true
         if File.exists?(options[:dbfile])
             obj = YAML::load(File.read(options[:dbfile]))
             if obj.is_a?(Hash)
                 h = obj
-                needupdate = false
             end
         end
         t1 = Time.now
         puts "Loaded DB in #{(t1-t0).round(2)}s."
 
+
+        ####
+
         indexpath = argv[0]
+        indexabspath = File.realpath(indexpath)
         nnewfiles = 0
         nskipfiles = 0
         ndupfiles = 0
         nfailfiles = 0
+        nupdatefiles = 0
+        nremovefiles = 0
         duplist = {}
+        needupdate = false
         puts "Indexing #{indexpath} ..."
         t0 = Time.now
+
+
+        #### Remove non-existing files and update modified files in the index path from the DB.
 
         dlist = []
         h.each do |skey, svalue|
             h[skey].each do |dkey, dvalue|
-                h[skey][dkey].each do |f|
+                h[skey][dkey].select { |s| s.path.start_with?(indexabspath) }.each do |f|
                     fsize = -1
                     digest = ""
                     fe = File.exists?(f.path)
@@ -68,39 +77,46 @@ module FM
                         next
                     end
 
+                    dlist.push(f)
+
                     if fe
-                        fsize = File.size(f.path)
-                        digest = Digest::MD5.hexdigest(File.read(f.path))
-                    end
-                    if fsize != f.fsize || digest != f.digest
-                        dlist.push(f)
+                        nupdatefiles += 1
+                        puts "[UPD]: #{f.path} #{f.digest}"
+                    else
+                        nremovefiles += 1
+                        puts "[RMV]: #{f.path} #{f.digest}"
                     end
                 end
             end
         end
 
         dlist.each do |f|
-            fsize = f.fsize
-            path = f.path
-            digest = f.digest
-
-            h[fsize][digest].delete_if { |v| v.path == path }
-            if h[fsize][digest].size == 0
-                h[fsize].delete(digest)
-                if h[fsize].size == 0
-                    h.delete(fsize)
+            h[f.fsize][f.digest].delete_if { |v| v.path == f.path }
+            if h[f.fsize][f.digest].size == 0
+                h[f.fsize].delete(f.digest)
+                if h[f.fsize].size == 0
+                    h.delete(f.fsize)
                 end
             end
 
             needupdate = true
         end
-        dlist = nil
 
+
+        #### Index the path recursively.
+
+        # FIXME: Configurable file patterns to be excluded.
         for fpath in Dir.glob("#{indexpath}/**/*", File::FNM_DOTMATCH).select { |e| e.force_encoding("binary"); File.ftype(e) == "file" && has_folder?(".git", e) == false && has_folder?(".hg", e) == false }
             begin
                 fpath = File.realpath(fpath).force_encoding("binary")
+                ftype = File.ftype(fpath)
                 fsize = File.size(fpath)
                 fmtime = File.mtime(fpath)
+                # last index time.
+                # storage type: raw or compressed?
+                # content type: text or binary?
+                # hash type.
+                # hash value.
 
                 if fsize == 0
                     nskipfiles += 1
@@ -108,7 +124,7 @@ module FM
                     next
                 end
 
-                # Lazy index the file.
+                # Lazily index the file.
                 if h[fsize].nil?
                     digest = Digest::MD5.hexdigest(File.read(fpath))
                     h[fsize] = { digest => [ FMFile.new(fsize, fpath, digest, fmtime) ] }
@@ -116,11 +132,16 @@ module FM
                     nnewfiles += 1
                     puts "[NEW]: #{fpath} #{digest}"
                 else
-
+                    # Skip if the file had been indexed.
+                    is_indexed = false
                     h[fsize].values.each do |v|
                         if v.any? { |f| f.mtime == fmtime && f.path == fpath }
-                            next
+                            is_indexed = true
+                            break
                         end
+                    end
+                    if is_indexed
+                        next
                     end
 
                     digest = Digest::MD5.hexdigest(File.read(fpath))
@@ -130,6 +151,10 @@ module FM
                         nnewfiles += 1
                         puts "[NEW]: #{fpath} #{digest}"
                     elsif h[fsize][digest].size == 1 && h[fsize][digest].first.path == fpath
+                        h[fsize][digest] = [ FMFile.new(fsize, fpath, digest, fmtime) ]
+                        needupdate = true
+                        nupdatefiles += 1
+                        puts "[UPD]: #{fpath} #{digest}"
                     else
                         ndupfiles += 1
                         if duplist[digest].nil?
@@ -156,12 +181,17 @@ module FM
             end
         end
 
+
+        #### Report and update DB.
+
         t1 = Time.now
         puts "Indexing completed in #{(t1-t0).round(2)}s."
 
         puts "Indexed:"
         puts "     NEW: #{nnewfiles}"
         puts "     DUP: #{ndupfiles}"
+        puts "     UPD: #{nupdatefiles}"
+        puts "     RMV: #{nremovefiles}"
         puts "    SKIP: #{nskipfiles}"
         puts "    FAIL: #{nfailfiles}"
 
