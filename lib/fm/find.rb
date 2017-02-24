@@ -92,8 +92,11 @@ module FM
 
         nearr.sort! { |a,b| a.path <=> b.path }
 
+        puts "Number of files found: #{earr.size}"
+
+        puts "Number of files not found: #{nearr.size}"
         nearr.each do |f|
-            puts f.path
+            puts "    #{f.path}"
         end
 
         t1 = Time.now
