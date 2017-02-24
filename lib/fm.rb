@@ -22,4 +22,5 @@
 
 
 require 'fm/version'
+require 'fm/find'
 require 'fm/index'
