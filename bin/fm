@@ -36,6 +36,7 @@ usage: fm <command> [args]
 Available fm commands:
     index       Create or update the index on the folder.
     find        Find files on the folder from the DB.
+    ls          List the files at the path indexed in the DB.
 EOS
 end
 
@@ -51,6 +52,8 @@ when "find"
     FM.cmd_find(ARGV.clone)
 when "index"
     FM.cmd_index(ARGV.clone)
+when "ls"
+    FM.cmd_ls(ARGV.clone)
 when "update"
 when "init"
 when "config"
