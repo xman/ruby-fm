@@ -40,11 +40,14 @@ module FM
         banner = "usage: fm ls [options] <PATH>"
         options = {
             dbfile: DBFILE,
+            longformat: false,
         }
         OptionParser.new do |opts|
             opts.banner = banner
 
-            opts.on "-l", "--long", "Use a long listing format."
+            opts.on "-l", "--long", "Use a long listing format." do
+                options[:longformat] = true
+            end
 
             opts.on "-h", "--help", "Show this message." do
                 puts opts
@@ -78,6 +81,7 @@ module FM
         indexpath = argv[0]
         indexabspath = File.realpath(indexpath)
         files = {}
+        digestarr = []
         t0 = Time.now
 
 
@@ -85,6 +89,7 @@ module FM
 
         h.values.each do |v0|        # Hash by file size.
             v0.values.each do |v1|   # Hash by digest.
+                hasany = false
                 fs = v1.select { |f| f.path =~ /^#{indexabspath}/ }
                 fs.each do |f|
                     p = f.path[indexabspath.length..-1]
@@ -92,7 +97,12 @@ module FM
                     if p.size > 1
                         p = p[1]
                         files[p] = true
+                        hasany = true
                     end
+                end
+
+                if hasany
+                    digestarr.push(v1)
                 end
             end
         end
@@ -100,10 +110,26 @@ module FM
 
         #### Report.
 
-        files.keys.each do |k|
-            printf("%s\t", k)
+        if options[:longformat]
+            digestarr.each do |arr|
+                if arr.size == 1
+                    puts "[UNQ]: #{arr.first.path}"
+                end
+            end
+            digestarr.each do |arr|
+                if arr.size > 1
+                    puts "[DUP]: #{arr.first.path}"
+                    arr[1..-1].each do |f|
+                        puts "       #{f.path}"
+                    end
+                end
+            end
+        else
+            files.keys.each do |k|
+                printf("%s\t", k)
+            end
+            puts
         end
-        puts
 
         t1 = Time.now
         puts "ls completed in #{(t1-t0).round(2)}s."
