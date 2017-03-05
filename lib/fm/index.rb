@@ -149,7 +149,13 @@ module FM
 
                 # Lazily index the file.
                 if h[fsize].nil?
-                    digest = Digest::MD5.hexdigest(File.read(fpath))
+                    begin
+                        digest = Digest::MD5.hexdigest(File.read(fpath))
+                    rescue NoMemoryError => e
+                        $stderr << "Unable to read file. path: #{fpath} size: #{fsize}"
+                        puts "[SKIP]: #{fpath}"
+                        next
+                    end
                     h[fsize] = { digest => [ FMFile.new(fsize, fpath, digest, fmtime) ] }
                     needupdate = true
                     nnewfiles += 1
