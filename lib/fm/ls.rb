@@ -118,10 +118,12 @@ module FM
             end
             digestarr.each do |arr|
                 if arr.size > 1
-                    puts "[DUP]: #{arr.first.path}"
+                    # FIXME: Ability to choose UN0 entry to indicate the main copy.
+                    puts "[UN0]: #{arr.first.path}"
                     arr[1..-1].each do |f|
-                        puts "       #{f.path}"
+                        puts "[DUP]: #{f.path}"
                     end
+                    puts
                 end
             end
         else

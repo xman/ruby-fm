@@ -202,6 +202,7 @@ module FM
             dup[1..-1].each do |f|
                 puts "       #{f.path}"
             end
+            puts
         end
 
 
